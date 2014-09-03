@@ -44,7 +44,7 @@ Example usage
 Future ideas
 ------------
 
-* delete books
+* ~~delete books~~
 * edit books
 * use the [OpenLibrary](https://openlibrary.org/developers/api) and/or [Librarything](https://www.librarything.com/services/) and/or [Goodreads](https://www.goodreads.com/api) API to fill in ISBN, maybe autocomplete/autofix titles/authors etc.
 * implement "lending" (to whom, set a deadline, show reminders)

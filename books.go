@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"strconv"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ var conn = initDb()
 
 func (book Book) String() string {
 	return fmt.Sprintf(
-		"{#%v: '%v' by '%v', comments: %v}\n",
+		"{#%v: '%v' by '%v', comments: %v}",
 		book.ID, book.Title, book.Author, book.Comments,
 	)
 }
@@ -92,6 +93,35 @@ func getBooks(query string) []Book {
 	return books
 }
 
+func getBookByID(id int) Book {
+	var book Book
+	var queryString = fmt.Sprintf(`SELECT * FROM books WHERE id = %v`, id)
+	stmt, err := conn.Prepare(queryString)
+	err = stmt.Exec()
+	if err != nil {
+		fmt.Println("Error getting book with id ", id, ": ", err)
+		os.Exit(1)
+	}
+	stmt.Next()
+	err = stmt.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
+	if err != nil {
+		fmt.Printf("Error while getting row data: %s\n", err)
+		os.Exit(1)
+	}
+	return book
+}
+
+func deleteBookByID(id int) {
+	queryString := fmt.Sprintf(`DELETE FROM books WHERE id = %v`, id)
+	stmt, err := conn.Prepare(queryString)
+	err = stmt.Exec()
+	if err != nil {
+		fmt.Printf("Error while deleting Book")
+		os.Exit(1)
+	}
+	stmt.Next()
+}
+
 func initDb() *sqlite.Conn {
 	var usr, err = user.Current()
 	if err != nil {
@@ -125,7 +155,7 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 1 {
-		fmt.Println("Please specify at least one command (one of 'ls', 'add', 'help')")
+		fmt.Println("Please specify at least one command (one of 'ls', 'add', 'del', 'help')")
 		os.Exit(1)
 	}
 	command := args[0]
@@ -141,7 +171,7 @@ func main() {
 		}
 		books := getBooks(query)
 		for _, b := range books {
-			fmt.Printf("%v", b)
+			fmt.Printf("%v\n", b)
 		}
 	} else if command == "add" {
 		author := prompt("Author: ")
@@ -149,11 +179,25 @@ func main() {
 		comments := prompt("Comments: ")
 		book := Book{0, title, author, "", comments}
 		insert(&book)
+	} else if command == "del" {
+		idString := prompt("id: ")
+		id, err := strconv.ParseInt(idString, 10, 0)
+		if err != nil {
+			fmt.Println("Invalid id (not a number)")
+			os.Exit(1)
+		}
+		book := getBookByID(int(id))
+		var promptString = fmt.Sprintf("Confirm deleting of %v (y/N)? ", book)
+		if strings.ToUpper(prompt(promptString)) == "Y" {
+			fmt.Println("Deleting ", book)
+			deleteBookByID(int(id))
+		}
 	} else if command == "help" {
 		fmt.Println("USAGE: books COMMAND argument1 argument2 ...")
 		fmt.Println("Available commands:")
 		fmt.Println("\tls - list books, pass search terms as arguments")
-		fmt.Println("\tadd - add books")
+		fmt.Println("\tadd - add book (prompts for title, author, comments")
+		fmt.Println("\tdel - delete book (prompts for id)")
 		fmt.Println("\thelp - display this text")
 	}
 }
