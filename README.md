@@ -5,6 +5,8 @@ command-line book inventory management
 
 **WARNING**: this software is in development. Don't use it unless you know what you're doing. Which is also why I don't write installation instructions, yet.
 
+[![Build Status](https://travis-ci.org/stchris/books.png?branch=master)](https://travis-ci.org/stchris/books)
+
 Database
 --------
 
