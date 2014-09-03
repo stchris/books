@@ -19,17 +19,14 @@ type Book struct {
 	Comments string
 }
 
+var conn = initDb()
+
 func (book Book) String() string {
 	return fmt.Sprintf(
 		"{#%v: '%v' by '%v', comments: %v}\n",
 		book.ID, book.Title, book.Author, book.Comments,
 	)
 }
-
-var usr, _ = user.Current()
-var db = usr.HomeDir + "/.books/books.db"
-
-var conn, err = sqlite.Open(db)
 
 func insert(book *Book) int {
 	insertSql := fmt.Sprintf(
@@ -95,8 +92,23 @@ func getBooks(query string) []Book {
 	return books
 }
 
-func initDb() {
+func initDb() *sqlite.Conn {
+	var usr, err = user.Current()
+	if err != nil {
+		fmt.Println("Error getting user's home dir: ", err)
+	}
+	os.Mkdir(usr.HomeDir + "/.books", 0700)
+	var db = usr.HomeDir + "/.books/books.db"
+
+	var conn, dberr = sqlite.Open(db)
+	if dberr != nil {
+		fmt.Println("Error opening the database file: ", dberr)
+		os.Exit(1)
+	}
+
 	conn.Exec("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR(200), author VARCHAR(200), isbn VARCHAR(20), comments TEXT);")
+
+	return conn
 }
 
 func prompt(text string) string {
