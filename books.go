@@ -20,7 +20,7 @@ type Book struct {
 	Comments string
 }
 
-var conn = initDb()
+var conn, err = initDb()
 
 func (book Book) String() string {
 	return fmt.Sprintf(
@@ -101,48 +101,46 @@ func getBooks(query string) []Book {
 	return books
 }
 
-func getBookByID(id int) *Book {
+func getBookByID(id int) (*Book, error) {
 	var book *Book
 	var queryString = fmt.Sprintf(`SELECT * FROM books WHERE id = %v`, id)
 	stmt, err := conn.Prepare(queryString)
 	err = stmt.Exec()
 	if err != nil {
-		fmt.Println("Error getting book with id ", id, ": ", err)
-		os.Exit(1)
+		return book, err
 	}
 	stmt.Next()
 	book = getBookFromStmt(stmt)
-	return book
+	return book, nil
 }
 
-func deleteBookByID(id int) {
+func deleteBookByID(id int) error {
 	queryString := fmt.Sprintf(`DELETE FROM books WHERE id = %v`, id)
 	stmt, err := conn.Prepare(queryString)
 	err = stmt.Exec()
 	if err != nil {
-		fmt.Printf("Error while deleting Book")
-		os.Exit(1)
+		return err
 	}
 	stmt.Next()
+	return nil
 }
 
-func initDb() *sqlite.Conn {
+func initDb() (*sqlite.Conn, error) {
 	var usr, err = user.Current()
 	if err != nil {
-		fmt.Println("Error getting user's home dir: ", err)
+		return nil, err
 	}
 	os.Mkdir(usr.HomeDir + "/.books", 0700)
 	var db = usr.HomeDir + "/.books/books.db"
 
 	var conn, dberr = sqlite.Open(db)
 	if dberr != nil {
-		fmt.Println("Error opening the database file: ", dberr)
-		os.Exit(1)
+		return nil, dberr
 	}
 
 	conn.Exec("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR(200), author VARCHAR(200), isbn VARCHAR(20), comments TEXT);")
 
-	return conn
+	return conn, nil
 }
 
 func prompt(text string) string {
@@ -199,7 +197,11 @@ func main() {
 			fmt.Println("Invalid id (not a number)")
 			os.Exit(1)
 		}
-		book := getBookByID(int(id))
+		book, err := getBookByID(int(id))
+		if err != nil {
+			fmt.Println("Error fetching book with id ", idString)
+			os.Exit(1)
+		}
 		var promptString = fmt.Sprintf("Confirm deleting of %v (y/N)? ", book)
 		if strings.ToUpper(prompt(promptString)) == "Y" {
 			fmt.Println("Deleting ", book)
