@@ -11,8 +11,6 @@ import (
 	"strings"
 )
 
-var conn sqlite.Conn
-
 // Book bundles data related to a book
 type Book struct {
 	ID       int
@@ -30,7 +28,7 @@ func (book Book) String() string {
 	)
 }
 
-func insert(book *Book) int {
+func insert(book *Book, conn *sqlite.Conn) int {
 	insertSql := fmt.Sprintf(
 		`INSERT INTO books(title, author, isbn, comments) VALUES('%v', '%v', '%v', '%v');`,
 		book.Title,
@@ -72,7 +70,7 @@ func getBookFromStmt(stmt *sqlite.Stmt) *Book {
 
 
 // get a Book slice if the title, author or comments contain the given query
-func getBooks(query string) []Book {
+func getBooks(query string, conn *sqlite.Conn) []Book {
 	var books []Book
 	var queryString string
 	if query != "" {
@@ -102,7 +100,7 @@ func getBooks(query string) []Book {
 	return books
 }
 
-func getBookByID(id int) (*Book, error) {
+func getBookByID(id int, conn *sqlite.Conn) (*Book, error) {
 	var book *Book
 	var queryString = fmt.Sprintf(`SELECT * FROM books WHERE id = %v`, id)
 	stmt, err := conn.Prepare(queryString)
@@ -115,7 +113,7 @@ func getBookByID(id int) (*Book, error) {
 	return book, nil
 }
 
-func deleteBookByID(id int) error {
+func deleteBookByID(id int, conn *sqlite.Conn) error {
 	queryString := fmt.Sprintf(`DELETE FROM books WHERE id = %v`, id)
 	stmt, err := conn.Prepare(queryString)
 	err = stmt.Exec()
@@ -182,7 +180,7 @@ func main() {
 		if len(subArgs) > 0 {
 			query = strings.Join(subArgs, " ")
 		}
-		books := getBooks(query)
+		books := getBooks(query, conn)
 		for _, b := range books {
 			fmt.Printf("%v\n", b)
 		}
@@ -191,7 +189,7 @@ func main() {
 		title := prompt("Title: ")
 		comments := prompt("Comments: ")
 		book := Book{0, title, author, "", comments}
-		insert(&book)
+		insert(&book, conn)
 	} else if command == "del" {
 		idString := prompt("id: ")
 		id, err := strconv.ParseInt(idString, 10, 0)
@@ -199,7 +197,7 @@ func main() {
 			fmt.Println("Invalid id (not a number)")
 			os.Exit(1)
 		}
-		book, err := getBookByID(int(id))
+		book, err := getBookByID(int(id), conn)
 		if err != nil {
 			fmt.Println("Error fetching book with id ", idString)
 			os.Exit(1)
@@ -207,7 +205,7 @@ func main() {
 		var promptString = fmt.Sprintf("Confirm deleting of %v (y/N)? ", book)
 		if strings.ToUpper(prompt(promptString)) == "Y" {
 			fmt.Println("Deleting ", book)
-			deleteBookByID(int(id))
+			deleteBookByID(int(id), conn)
 		}
 	} else if command == "help" {
 		printUsage()
