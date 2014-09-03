@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var conn sqlite.Conn
+
 // Book bundles data related to a book
 type Book struct {
 	ID       int
@@ -20,7 +22,6 @@ type Book struct {
 	Comments string
 }
 
-var conn, err = initDb()
 
 func (book Book) String() string {
 	return fmt.Sprintf(
@@ -125,13 +126,9 @@ func deleteBookByID(id int) error {
 	return nil
 }
 
-func initDb() (*sqlite.Conn, error) {
-	var usr, err = user.Current()
-	if err != nil {
-		return nil, err
-	}
-	os.Mkdir(usr.HomeDir + "/.books", 0700)
-	var db = usr.HomeDir + "/.books/books.db"
+func initDb(dbPath string, dbName string) (*sqlite.Conn, error) {
+	os.Mkdir(dbPath, 0700)
+	var db = dbPath + dbName
 
 	var conn, dberr = sqlite.Open(db)
 	if dberr != nil {
@@ -172,7 +169,12 @@ func main() {
 	command := args[0]
 	subArgs := args[1:]
 
-	initDb()
+	var usr, _ = user.Current()
+	var conn, err = initDb(usr.HomeDir + "/.books/", "books.db")
+	if err != nil {
+		fmt.Println("Error initializing database ", err)
+		os.Exit(1)
+	}
 	defer conn.Close()
 
 	if command == "ls" {
