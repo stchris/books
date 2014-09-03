@@ -1,8 +1,8 @@
 package main
 
 import (
-	"code.google.com/p/gosqlite/sqlite"
 	"bufio"
+	"code.google.com/p/gosqlite/sqlite"
 	"flag"
 	"fmt"
 	"os"
@@ -19,7 +19,6 @@ type Book struct {
 	ISBN     string
 	Comments string
 }
-
 
 func (book Book) String() string {
 	return fmt.Sprintf(
@@ -68,21 +67,20 @@ func getBookFromStmt(stmt *sqlite.Stmt) *Book {
 	return book
 }
 
-
 // get a Book slice if the title, author or comments contain the given query
 func getBooks(query string, conn *sqlite.Conn) []Book {
 	var books []Book
 	var queryString string
 	if query != "" {
 		queryString = fmt.Sprintf(
-		`SELECT * FROM books WHERE title LIKE "%%%v%%"
+			`SELECT * FROM books WHERE title LIKE "%%%v%%"
 		UNION
 		SELECT * FROM books WHERE author LIKE "%%%v%%"
 		UNION
 		SELECT * FROM books WHERE comments LIKE "%%%v%%"`,
-		query,
-		query,
-		query)
+			query,
+			query,
+			query)
 	} else {
 		queryString = "SELECT * FROM books"
 	}
@@ -168,7 +166,7 @@ func main() {
 	subArgs := args[1:]
 
 	var usr, _ = user.Current()
-	var conn, err = initDb(usr.HomeDir + "/.books/", "books.db")
+	var conn, err = initDb(usr.HomeDir+"/.books/", "books.db")
 	if err != nil {
 		fmt.Println("Error initializing database ", err)
 		os.Exit(1)

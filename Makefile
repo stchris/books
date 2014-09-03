@@ -1,5 +1,5 @@
 
-all: build test vet golint
+all: fmt build test vet golint
 
 build:
 	go get
@@ -13,3 +13,6 @@ vet:
 
 golint:
 	golint
+
+fmt:
+	go fmt
