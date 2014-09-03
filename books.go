@@ -151,11 +151,20 @@ func prompt(text string) string {
 	return string(line)
 }
 
+func printUsage() {
+	fmt.Println("USAGE: books COMMAND argument1 argument2 ...")
+	fmt.Println("Available commands:")
+	fmt.Println("\tls - list books, pass search terms as arguments")
+	fmt.Println("\tadd - add book (prompts for title, author, comments")
+	fmt.Println("\tdel - delete book (prompts for id)")
+	fmt.Println("\thelp - display this text")
+}
+
 func main() {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 1 {
-		fmt.Println("Please specify at least one command (one of 'ls', 'add', 'del', 'help')")
+		printUsage()
 		os.Exit(1)
 	}
 	command := args[0]
@@ -193,11 +202,6 @@ func main() {
 			deleteBookByID(int(id))
 		}
 	} else if command == "help" {
-		fmt.Println("USAGE: books COMMAND argument1 argument2 ...")
-		fmt.Println("Available commands:")
-		fmt.Println("\tls - list books, pass search terms as arguments")
-		fmt.Println("\tadd - add book (prompts for title, author, comments")
-		fmt.Println("\tdel - delete book (prompts for id)")
-		fmt.Println("\thelp - display this text")
+		printUsage()
 	}
 }
