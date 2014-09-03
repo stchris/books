@@ -56,6 +56,21 @@ func insert(book *Book) int {
 	return x
 }
 
+// try to parse a Book from a DB statement
+func getBookFromStmt(stmt *sqlite.Stmt) *Book {
+	book := new(Book)
+
+	err := stmt.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
+	if err != nil {
+		fmt.Printf("Error while getting row data: %s\n", err)
+		os.Exit(1)
+	}
+
+	return book
+}
+
+
+// get a Book slice if the title, author or comments contain the given query
 func getBooks(query string) []Book {
 	var books []Book
 	var queryString string
@@ -79,22 +94,15 @@ func getBooks(query string) []Book {
 	}
 
 	for selectStmt.Next() {
-		book := new(Book)
-
-		err = selectStmt.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
-		if err != nil {
-			fmt.Printf("Error while getting row data: %s\n", err)
-			os.Exit(1)
-		}
-
+		book := getBookFromStmt(selectStmt)
 		books = append(books, *book)
 	}
 
 	return books
 }
 
-func getBookByID(id int) Book {
-	var book Book
+func getBookByID(id int) *Book {
+	var book *Book
 	var queryString = fmt.Sprintf(`SELECT * FROM books WHERE id = %v`, id)
 	stmt, err := conn.Prepare(queryString)
 	err = stmt.Exec()
@@ -103,11 +111,7 @@ func getBookByID(id int) Book {
 		os.Exit(1)
 	}
 	stmt.Next()
-	err = stmt.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
-	if err != nil {
-		fmt.Printf("Error while getting row data: %s\n", err)
-		os.Exit(1)
-	}
+	book = getBookFromStmt(stmt)
 	return book
 }
 
