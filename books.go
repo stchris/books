@@ -3,21 +3,29 @@ package main
 import (
 	"bufio"
 	"code.google.com/p/gosqlite/sqlite"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/user"
 	"strconv"
 	"strings"
 )
 
+var usr, _ = user.Current()
+// path to db
+var DBPATH = usr.HomeDir + "/.books/"
+// db file name
+var DBNAME = "books.db"
+
 // Book bundles data related to a book
 type Book struct {
-	ID       int
-	Title    string
-	Author   string
-	ISBN     string
-	Comments string
+	ID       int    `json:"id"`
+	Title    string `json:"title"`
+	Author   string `json:"author"`
+	ISBN     string `json:"isbn"`
+	Comments string `json:"comments"`
 }
 
 func (book Book) String() string {
@@ -46,7 +54,7 @@ func insert(book *Book, conn *sqlite.Conn) int {
 		fmt.Printf("Error while getting autoincrement value: %s", err)
 	}
 
-	x := 0
+x := 0
 	if selectStmt.Next() {
 		selectStmt.Scan(&x)
 	}
@@ -146,12 +154,21 @@ func prompt(text string) string {
 	return string(line)
 }
 
+func webAPIBook(w http.ResponseWriter, r *http.Request) {
+	conn, _ := initDb(DBPATH, DBNAME)
+	defer conn.Close()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	var books = getBooks("", conn)
+	json.NewEncoder(w).Encode(books)
+}
+
 func printUsage() {
 	fmt.Println("USAGE: books COMMAND argument1 argument2 ...")
 	fmt.Println("Available commands:")
 	fmt.Println("\tls - list books, pass search terms as arguments")
-	fmt.Println("\tadd - add book (prompts for title, author, comments")
+	fmt.Println("\tadd - add book (prompts for title, author, comments)")
 	fmt.Println("\tdel - delete book (prompts for id)")
+	fmt.Println("\tweb - starts the built-in web server on port 8765")
 	fmt.Println("\thelp - display this text")
 }
 
@@ -165,8 +182,7 @@ func main() {
 	command := args[0]
 	subArgs := args[1:]
 
-	var usr, _ = user.Current()
-	var conn, err = initDb(usr.HomeDir+"/.books/", "books.db")
+	var conn, err = initDb(DBPATH, DBNAME)
 	if err != nil {
 		fmt.Println("Error initializing database ", err)
 		os.Exit(1)
@@ -205,6 +221,13 @@ func main() {
 			fmt.Println("Deleting ", book)
 			deleteBookByID(int(id), conn)
 		}
+	} else if command == "web" {
+		http.Handle("/", http.FileServer(http.Dir("web/")))
+		http.HandleFunc("/api/book", webAPIBook)
+		var url = "127.0.0.1:8765"
+		fmt.Println("Web server listening at http://" + url)
+		fmt.Println("Press ^C to stop")
+		http.ListenAndServe(url, nil)
 	} else if command == "help" {
 		printUsage()
 	}
