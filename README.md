@@ -10,7 +10,7 @@ command-line book inventory management
 Database
 --------
 
-When adding your first entry, a Sqlite database will be created in *~/.books/books/db*
+When adding your first entry, a Sqlite database will be created in *~/.books/books.db*
 
 Example usage
 -------------
@@ -38,10 +38,10 @@ Example usage
     $ books help
     USAGE: books COMMAND argument1 argument2 ...
     Available commands:
-        	ls - list books, pass search terms as arguments
-        	add - add books
-        	help - display this text
-    
+        ls - list books, pass search terms as arguments
+        add - add book (prompts for title, author, comments
+        del - delete book (prompts for id)
+        help - display this text
 
 Future ideas
 ------------
