@@ -14,8 +14,10 @@ import (
 )
 
 var usr, _ = user.Current()
+
 // path to db
 var DBPATH = usr.HomeDir + "/.books/"
+
 // db file name
 var DBNAME = "books.db"
 
@@ -54,7 +56,7 @@ func insert(book *Book, conn *sqlite.Conn) int {
 		fmt.Printf("Error while getting autoincrement value: %s", err)
 	}
 
-x := 0
+	x := 0
 	if selectStmt.Next() {
 		selectStmt.Scan(&x)
 	}
@@ -157,9 +159,19 @@ func prompt(text string) string {
 func webAPIBook(w http.ResponseWriter, r *http.Request) {
 	conn, _ := initDb(DBPATH, DBNAME)
 	defer conn.Close()
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	var books = getBooks("", conn)
-	json.NewEncoder(w).Encode(books)
+	if r.Method == "GET" {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		var books = getBooks("", conn)
+		json.NewEncoder(w).Encode(books)
+	} else if r.Method == "POST" {
+		r.ParseForm()
+		title := r.PostFormValue("title")
+		author := r.PostFormValue("author")
+		isbn := r.PostFormValue("isbn")
+		comments := r.PostFormValue("comments")
+		book := Book{Title: title, Author: author, ISBN: isbn, Comments: comments}
+		insert(&book, conn)
+	}
 }
 
 func printUsage() {
