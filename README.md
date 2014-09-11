@@ -42,13 +42,3 @@ Example usage
         add - add book (prompts for title, author, comments
         del - delete book (prompts for id)
         help - display this text
-
-Future ideas
-------------
-
-* ~~delete books~~
-* edit books
-* use the [OpenLibrary](https://openlibrary.org/developers/api) and/or [Librarything](https://www.librarything.com/services/) and/or [Goodreads](https://www.goodreads.com/api) API to fill in ISBN, maybe autocomplete/autofix titles/authors etc.
-* implement "lending" (to whom, set a deadline, show reminders)
-* web gui
-* export to csv/tsv. What's the industry standard format?
