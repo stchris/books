@@ -40,8 +40,8 @@ Example usage
     Available commands:
         ls - list books, pass search terms as arguments
         add - add books
-	del - delete book (prompts for id)
-	web - starts the built-in web server on port 8765
+        del - delete book (prompts for id)
+        web - starts the built-in web server on port 8765
         help - display this text
 
     $ books web
