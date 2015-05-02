@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -48,12 +49,12 @@ func insert(book *Book, conn *sqlite.Conn) int {
 
 	err := conn.Exec(insertSql)
 	if err != nil {
-		fmt.Printf("Error while Inserting: %s", err)
+		log.Printf("Error while Inserting: %s", err)
 	}
 
 	selectStmt, err := conn.Prepare("select last_insert_rowid();")
 	if err != nil {
-		fmt.Printf("Error while getting autoincrement value: %s", err)
+		log.Printf("Error while getting autoincrement value: %s", err)
 	}
 
 	x := 0
@@ -70,7 +71,7 @@ func getBookFromStmt(stmt *sqlite.Stmt) *Book {
 
 	err := stmt.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
 	if err != nil {
-		fmt.Printf("Error while getting row data: %s\n", err)
+		log.Printf("Error while getting row data: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -97,7 +98,7 @@ func getBooks(query string, conn *sqlite.Conn) []Book {
 	selectStmt, err := conn.Prepare(queryString)
 	err = selectStmt.Exec()
 	if err != nil {
-		fmt.Printf("Error while Selecting: %v", err)
+		log.Printf("Error while Selecting: %v", err)
 	}
 
 	for selectStmt.Next() {
@@ -171,6 +172,7 @@ func webAPIBook(w http.ResponseWriter, r *http.Request) {
 		comments := r.PostFormValue("comments")
 		book := Book{Title: title, Author: author, ISBN: isbn, Comments: comments}
 		insert(&book, conn)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
@@ -196,7 +198,7 @@ func main() {
 
 	var conn, err = initDb(DBPATH, DBNAME)
 	if err != nil {
-		fmt.Println("Error initializing database ", err)
+		log.Println("Error initializing database ", err)
 		os.Exit(1)
 	}
 	defer conn.Close()
@@ -220,25 +222,25 @@ func main() {
 		idString := prompt("id: ")
 		id, err := strconv.ParseInt(idString, 10, 0)
 		if err != nil {
-			fmt.Println("Invalid id (not a number)")
+			log.Println("Invalid id (not a number)")
 			os.Exit(1)
 		}
 		book, err := getBookByID(int(id), conn)
 		if err != nil {
-			fmt.Println("Error fetching book with id ", idString)
+			log.Println("Error fetching book with id ", idString)
 			os.Exit(1)
 		}
 		var promptString = fmt.Sprintf("Confirm deleting of %v (y/N)? ", book)
 		if strings.ToUpper(prompt(promptString)) == "Y" {
-			fmt.Println("Deleting ", book)
+			log.Println("Deleting ", book)
 			deleteBookByID(int(id), conn)
 		}
 	} else if command == "web" {
 		http.Handle("/", http.FileServer(http.Dir("web/")))
 		http.HandleFunc("/api/book", webAPIBook)
 		var url = "127.0.0.1:8765"
-		fmt.Println("Web server listening at http://" + url)
-		fmt.Println("Press ^C to stop")
+		log.Println("Web server listening at http://" + url)
+		log.Println("Press ^C to stop")
 		http.ListenAndServe(url, nil)
 	} else if command == "help" {
 		printUsage()
