@@ -16,3 +16,6 @@ golint:
 
 fmt:
 	go fmt
+
+clean:
+	rm -f books
