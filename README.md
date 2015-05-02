@@ -38,7 +38,12 @@ Example usage
     $ books help
     USAGE: books COMMAND argument1 argument2 ...
     Available commands:
-        ls - list books, pass search terms as arguments
-        add - add book (prompts for title, author, comments
-        del - delete book (prompts for id)
-        help - display this text
+        	ls - list books, pass search terms as arguments
+        	add - add books
+		del - delete book (prompts for id)
+		web - starts the built-in web server on port 8765
+        	help - display this text
+
+    $ books web
+    2015/05/02 13:32:49 Web server listening at http://127.0.0.1:8765
+    2015/05/02 13:32:49 Press ^C to stop
