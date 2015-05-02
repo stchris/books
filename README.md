@@ -41,14 +41,8 @@ Example usage
         	ls - list books, pass search terms as arguments
         	add - add books
         	help - display this text
-    
 
-Future ideas
-------------
+    $ books web
+    2015/05/02 13:32:49 Web server listening at http://127.0.0.1:8765
+    2015/05/02 13:32:49 Press ^C to stop
 
-* ~~delete books~~
-* edit books
-* use the [OpenLibrary](https://openlibrary.org/developers/api) and/or [Librarything](https://www.librarything.com/services/) and/or [Goodreads](https://www.goodreads.com/api) API to fill in ISBN, maybe autocomplete/autofix titles/authors etc.
-* implement "lending" (to whom, set a deadline, show reminders)
-* web gui
-* export to csv/tsv. What's the industry standard format?
