@@ -238,7 +238,7 @@ func main() {
 	} else if command == "web" {
 		http.Handle("/", http.FileServer(http.Dir("web/")))
 		http.HandleFunc("/api/book", webAPIBook)
-		var url = "127.0.0.1:8765"
+		var url = "0.0.0.0:8765"
 		log.Println("Web server listening at http://" + url)
 		log.Println("Press ^C to stop")
 		http.ListenAndServe(url, nil)
