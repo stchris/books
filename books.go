@@ -15,13 +15,15 @@ import (
 	"strings"
 )
 
-var usr, _ = user.Current()
+var (
+	usr, _ = user.Current()
 
-// DBPATH is the path to the db
-var DBPATH = usr.HomeDir + "/.books/"
+	// DBPath is the path to the db
+	DBPath = usr.HomeDir + "/.books/"
 
-// DBNAME is the db file name
-var DBNAME = "books.db"
+	// DBName is the db file name
+	DBName = "books.db"
+)
 
 // Book bundles data related to a book
 type Book struct {
@@ -41,7 +43,7 @@ func (book Book) String() string {
 
 func insert(book *Book, db *sql.DB) int {
 	_, err := db.Exec(
-		`INSERT INTO books(title, author, isbn, comments) VALUES(?, ?, ?, ?);`,
+		`INSERT INTO books(title, author, isbn, comments) VALUES(?, ?, ?, ?)`,
 		book.Title,
 		book.Author,
 		book.ISBN,
@@ -51,7 +53,7 @@ func insert(book *Book, db *sql.DB) int {
 		log.Printf("Error while Inserting: %s", err)
 	}
 
-	row := db.QueryRow("select last_insert_rowid();")
+	row := db.QueryRow("SELECT last_insert_rowid()")
 	x := 0
 	err = row.Scan(&x)
 	if err != nil {
@@ -75,7 +77,7 @@ func getBooks(query string, db *sql.DB) []Book {
 			query,
 			query)
 	} else {
-		queryString = "SELECT * FROM books"
+		queryString = "SELECT id, title, author, isbn, comments FROM books"
 	}
 	rows, err := db.Query(queryString)
 	if err != nil {
@@ -96,24 +98,18 @@ func getBooks(query string, db *sql.DB) []Book {
 }
 
 func getBookByID(id int, db *sql.DB) (*Book, error) {
-	var book *Book
-	var queryString = fmt.Sprintf(`SELECT * FROM books WHERE id = %v`, id)
-	rows, err := db.Query(queryString)
+	rows, err := db.Query(`SELECT * FROM books WHERE id = ?`, id)
 	if err != nil {
-		return book, err
+		return nil, err
 	}
-	book = new(Book)
+	book := Book{}
 	err = rows.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
-	return book, err
+	return &book, err
 }
 
 func deleteBookByID(id int, db *sql.DB) error {
-	queryString := fmt.Sprintf(`DELETE FROM books WHERE id = %v`, id)
-	_, err := db.Exec(queryString)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := db.Exec(`DELETE FROM books WHERE id = ?`, id)
+	return err
 }
 
 func initDb(dbPath string, dbName string) (*sql.DB, error) {
@@ -144,7 +140,10 @@ func prompt(text string) string {
 }
 
 func webAPIBook(w http.ResponseWriter, r *http.Request) {
-	db, _ := initDb(DBPATH, DBNAME)
+	db, err := initDb(DBPath, DBName)
+	if err != nil {
+		log.Fatalf("Failed to initialize db connection: %v", err)
+	}
 	defer db.Close()
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -182,10 +181,9 @@ func main() {
 	command := args[0]
 	subArgs := args[1:]
 
-	var db, err = initDb(DBPATH, DBNAME)
+	var db, err = initDb(DBPath, DBName)
 	if err != nil {
-		log.Println("Error initializing database ", err)
-		os.Exit(1)
+		log.Fatalf("Error initializing database: %v", err)
 	}
 	defer db.Close()
 

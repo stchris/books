@@ -2,7 +2,7 @@
 all: deps fmt build test vet golint
 
 deps:
-	go get -u github.com/golang/lint/golint
+	go get github.com/golang/lint/golint
 
 build:
 	go get

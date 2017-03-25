@@ -17,7 +17,7 @@ func queryAndExpect(query string, expected int, db *sql.DB, t *testing.T) {
 func TestBasic(t *testing.T) {
 	var db, err = initDb("./", "test.db")
 	if err != nil {
-		t.Fatalf("Error on db init %v", err)
+		t.Fatalf("Error on db init: %v", err)
 	}
 	defer db.Close()
 
@@ -32,7 +32,10 @@ func TestBasic(t *testing.T) {
 }
 
 func TestQueries(t *testing.T) {
-	var db, _ = initDb("./", "test.db")
+	var db, err = initDb("./", "test.db")
+	if err != nil {
+		t.Fatalf("Error on db init: %v", err)
+	}
 	defer db.Close()
 
 	var b1 = Book{ID: 1, Title: "Foo", Author: "bar"}
