@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"code.google.com/p/gosqlite/sqlite"
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,16 +10,17 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	_ "rsc.io/sqlite"
 	"strconv"
 	"strings"
 )
 
 var usr, _ = user.Current()
 
-// path to db
+// DBPATH is the path to the db
 var DBPATH = usr.HomeDir + "/.books/"
 
-// db file name
+// DBNAME is the db file name
 var DBNAME = "books.db"
 
 // Book bundles data related to a book
@@ -38,48 +39,29 @@ func (book Book) String() string {
 	)
 }
 
-func insert(book *Book, conn *sqlite.Conn) int {
-	insertSql := fmt.Sprintf(
-		`INSERT INTO books(title, author, isbn, comments) VALUES('%v', '%v', '%v', '%v');`,
+func insert(book *Book, db *sql.DB) int {
+	_, err := db.Exec(
+		`INSERT INTO books(title, author, isbn, comments) VALUES(?, ?, ?, ?);`,
 		book.Title,
 		book.Author,
 		book.ISBN,
 		book.Comments,
 	)
-
-	err := conn.Exec(insertSql)
 	if err != nil {
 		log.Printf("Error while Inserting: %s", err)
 	}
 
-	selectStmt, err := conn.Prepare("select last_insert_rowid();")
+	row := db.QueryRow("select last_insert_rowid();")
+	x := 0
+	err = row.Scan(&x)
 	if err != nil {
 		log.Printf("Error while getting autoincrement value: %s", err)
 	}
-
-	x := 0
-	if selectStmt.Next() {
-		selectStmt.Scan(&x)
-	}
-
 	return x
 }
 
-// try to parse a Book from a DB statement
-func getBookFromStmt(stmt *sqlite.Stmt) *Book {
-	book := new(Book)
-
-	err := stmt.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
-	if err != nil {
-		log.Printf("Error while getting row data: %s\n", err)
-		os.Exit(1)
-	}
-
-	return book
-}
-
 // get a Book slice if the title, author or comments contain the given query
-func getBooks(query string, conn *sqlite.Conn) []Book {
+func getBooks(query string, db *sql.DB) []Book {
 	var books []Book
 	var queryString string
 	if query != "" {
@@ -95,56 +77,60 @@ func getBooks(query string, conn *sqlite.Conn) []Book {
 	} else {
 		queryString = "SELECT * FROM books"
 	}
-	selectStmt, err := conn.Prepare(queryString)
-	err = selectStmt.Exec()
+	rows, err := db.Query(queryString)
 	if err != nil {
 		log.Printf("Error while Selecting: %v", err)
 	}
+	defer rows.Close()
 
-	for selectStmt.Next() {
-		book := getBookFromStmt(selectStmt)
+	for rows.Next() {
+		book := new(Book)
+		err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
+		if err != nil {
+			log.Fatalf("Error getting row data: %s", err)
+		}
 		books = append(books, *book)
 	}
 
 	return books
 }
 
-func getBookByID(id int, conn *sqlite.Conn) (*Book, error) {
+func getBookByID(id int, db *sql.DB) (*Book, error) {
 	var book *Book
 	var queryString = fmt.Sprintf(`SELECT * FROM books WHERE id = %v`, id)
-	stmt, err := conn.Prepare(queryString)
-	err = stmt.Exec()
+	rows, err := db.Query(queryString)
 	if err != nil {
 		return book, err
 	}
-	stmt.Next()
-	book = getBookFromStmt(stmt)
-	return book, nil
+	book = new(Book)
+	err = rows.Scan(&book.ID, &book.Title, &book.Author, &book.ISBN, &book.Comments)
+	return book, err
 }
 
-func deleteBookByID(id int, conn *sqlite.Conn) error {
+func deleteBookByID(id int, db *sql.DB) error {
 	queryString := fmt.Sprintf(`DELETE FROM books WHERE id = %v`, id)
-	stmt, err := conn.Prepare(queryString)
-	err = stmt.Exec()
+	_, err := db.Exec(queryString)
 	if err != nil {
 		return err
 	}
-	stmt.Next()
 	return nil
 }
 
-func initDb(dbPath string, dbName string) (*sqlite.Conn, error) {
+func initDb(dbPath string, dbName string) (*sql.DB, error) {
 	os.Mkdir(dbPath, 0700)
-	var db = dbPath + dbName
+	var dbFullPath = dbPath + dbName
 
-	var conn, dberr = sqlite.Open(db)
-	if dberr != nil {
-		return nil, dberr
+	var db, err = sql.Open("sqlite3", dbFullPath)
+	if err != nil {
+		return nil, err
 	}
 
-	conn.Exec("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR(200), author VARCHAR(200), isbn VARCHAR(20), comments TEXT);")
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
 
-	return conn, nil
+	_, err = db.Exec("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR(200), author VARCHAR(200), isbn VARCHAR(20), comments TEXT);")
+	return db, err
 }
 
 func prompt(text string) string {
@@ -158,11 +144,11 @@ func prompt(text string) string {
 }
 
 func webAPIBook(w http.ResponseWriter, r *http.Request) {
-	conn, _ := initDb(DBPATH, DBNAME)
-	defer conn.Close()
+	db, _ := initDb(DBPATH, DBNAME)
+	defer db.Close()
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		var books = getBooks("", conn)
+		var books = getBooks("", db)
 		json.NewEncoder(w).Encode(books)
 	} else if r.Method == "POST" {
 		r.ParseForm()
@@ -171,7 +157,7 @@ func webAPIBook(w http.ResponseWriter, r *http.Request) {
 		isbn := r.PostFormValue("isbn")
 		comments := r.PostFormValue("comments")
 		book := Book{Title: title, Author: author, ISBN: isbn, Comments: comments}
-		insert(&book, conn)
+		insert(&book, db)
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
@@ -196,19 +182,19 @@ func main() {
 	command := args[0]
 	subArgs := args[1:]
 
-	var conn, err = initDb(DBPATH, DBNAME)
+	var db, err = initDb(DBPATH, DBNAME)
 	if err != nil {
 		log.Println("Error initializing database ", err)
 		os.Exit(1)
 	}
-	defer conn.Close()
+	defer db.Close()
 
 	if command == "ls" {
 		query := ""
 		if len(subArgs) > 0 {
 			query = strings.Join(subArgs, " ")
 		}
-		books := getBooks(query, conn)
+		books := getBooks(query, db)
 		for _, b := range books {
 			fmt.Printf("%v\n", b)
 		}
@@ -217,7 +203,7 @@ func main() {
 		title := prompt("Title: ")
 		comments := prompt("Comments: ")
 		book := Book{0, title, author, "", comments}
-		insert(&book, conn)
+		insert(&book, db)
 	} else if command == "del" {
 		idString := prompt("id: ")
 		id, err := strconv.ParseInt(idString, 10, 0)
@@ -225,7 +211,7 @@ func main() {
 			log.Println("Invalid id (not a number)")
 			os.Exit(1)
 		}
-		book, err := getBookByID(int(id), conn)
+		book, err := getBookByID(int(id), db)
 		if err != nil {
 			log.Println("Error fetching book with id ", idString)
 			os.Exit(1)
@@ -233,7 +219,7 @@ func main() {
 		var promptString = fmt.Sprintf("Confirm deleting of %v (y/N)? ", book)
 		if strings.ToUpper(prompt(promptString)) == "Y" {
 			log.Println("Deleting ", book)
-			deleteBookByID(int(id), conn)
+			deleteBookByID(int(id), db)
 		}
 	} else if command == "web" {
 		http.Handle("/", http.FileServer(http.Dir("web/")))
