@@ -1,8 +1,8 @@
 language: go
 
 go:
-  - 1.3
-  - tip
+  - 1.8
+  - master
 
 script:
-  - make build test
+  - make all
