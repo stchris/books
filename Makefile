@@ -1,5 +1,8 @@
 
-all: fmt build test vet golint
+all: deps fmt build test vet golint
+
+deps:
+	go get -u github.com/golang/lint/golint
 
 build:
 	go get
