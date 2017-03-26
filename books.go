@@ -202,10 +202,11 @@ func main() {
 			fmt.Printf("%v\n", b)
 		}
 	case "add":
-		author := prompt("Author: ")
 		title := prompt("Title: ")
+		author := prompt("Author: ")
+		isbn := prompt("ISBN: ")
 		comments := prompt("Comments: ")
-		book := Book{0, title, author, "", comments}
+		book := Book{0, title, author, isbn, comments}
 		insert(&book, db)
 	case "del":
 		idString := prompt("id: ")
