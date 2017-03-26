@@ -145,11 +145,12 @@ func webAPIBook(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Failed to initialize db connection: %v", err)
 	}
 	defer db.Close()
-	if r.Method == "GET" {
+	switch method := r.Method; method {
+	case "GET":
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		var books = getBooks("", db)
 		json.NewEncoder(w).Encode(books)
-	} else if r.Method == "POST" {
+	case "POST":
 		r.ParseForm()
 		title := r.PostFormValue("title")
 		author := r.PostFormValue("author")
@@ -157,7 +158,10 @@ func webAPIBook(w http.ResponseWriter, r *http.Request) {
 		comments := r.PostFormValue("comments")
 		book := Book{Title: title, Author: author, ISBN: isbn, Comments: comments}
 		insert(&book, db)
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusOK)
+	default:
+		log.Printf("Invalid http verb: %v", method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
