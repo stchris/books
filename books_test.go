@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	_ "rsc.io/sqlite"
 	"testing"
@@ -52,4 +54,66 @@ func TestQueries(t *testing.T) {
 	queryAndExpect("NO such $tring", 0, db, t)
 
 	os.Remove("./test.db")
+}
+
+func TestAPIgetOk(t *testing.T) {
+	DBName = "testgetok.db"
+	defer os.Remove(DBName)
+
+	req, err := http.NewRequest("GET", "/api/book", nil)
+	if err != nil {
+		t.Fatalf("Error setting up http request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(webAPIBook)
+
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+}
+
+func TestAPIpostAndGet(t *testing.T) {
+	DBName = "testpostandgetok.db"
+	defer os.Remove(DBName)
+
+	postReq := httptest.NewRequest("POST", "/api/book", nil)
+	getReq := httptest.NewRequest("GET", "/api/book", nil)
+
+	rr := httptest.NewRecorder()
+
+	webAPIBook(rr, postReq)
+	resp := rr.Result()
+	if status := resp.StatusCode; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	webAPIBook(rr, getReq)
+	resp = rr.Result()
+	if status := resp.StatusCode; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+}
+
+func TestAPImethodFail(t *testing.T) {
+	DBName = "testmethodfail.db"
+	defer os.Remove(DBName)
+
+	req, err := http.NewRequest("PATCH", "/api/book", nil)
+	if err != nil {
+		t.Fatalf("Error setting up http request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(webAPIBook)
+
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusMethodNotAllowed {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
 }
