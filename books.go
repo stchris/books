@@ -191,7 +191,8 @@ func main() {
 	}
 	defer db.Close()
 
-	if command == "ls" {
+	switch command {
+	case "ls":
 		query := ""
 		if len(subArgs) > 0 {
 			query = strings.Join(subArgs, " ")
@@ -200,13 +201,13 @@ func main() {
 		for _, b := range books {
 			fmt.Printf("%v\n", b)
 		}
-	} else if command == "add" {
+	case "add":
 		author := prompt("Author: ")
 		title := prompt("Title: ")
 		comments := prompt("Comments: ")
 		book := Book{0, title, author, "", comments}
 		insert(&book, db)
-	} else if command == "del" {
+	case "del":
 		idString := prompt("id: ")
 		id, err := strconv.ParseInt(idString, 10, 0)
 		if err != nil {
@@ -223,14 +224,14 @@ func main() {
 			log.Println("Deleting ", book)
 			deleteBookByID(int(id), db)
 		}
-	} else if command == "web" {
+	case "web":
 		http.Handle("/", http.FileServer(http.Dir("web/")))
 		http.HandleFunc("/api/book", webAPIBook)
 		var url = "0.0.0.0:8765"
 		log.Println("Web server listening at http://" + url)
 		log.Println("Press ^C to stop")
 		http.ListenAndServe(url, nil)
-	} else if command == "help" {
+	case "help":
 		printUsage()
 	}
 }
