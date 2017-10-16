@@ -3,9 +3,10 @@ all: deps fmt build test vet golint
 
 deps:
 	go get github.com/golang/lint/golint
+	go get -u github.com/kardianos/govendor
 
 build:
-	go get
+	govendor sync
 	go build
 
 test:
