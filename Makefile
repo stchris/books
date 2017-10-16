@@ -1,21 +1,20 @@
 
-all: deps fmt build test vet golint
+all: deps fmt test build
 
 deps:
 	go get github.com/golang/lint/golint
+	go get honnef.co/go/tools/cmd/megacheck
 
 build:
 	go get
 	go build
 
-test:
+test: lint
 	go test
 
-vet:
-	go vet
-
-golint:
+lint:
 	golint
+	megacheck
 
 fmt:
 	go fmt
