@@ -4,9 +4,10 @@ all: deps fmt test build
 deps:
 	go get github.com/golang/lint/golint
 	go get honnef.co/go/tools/cmd/megacheck
+	go get -u github.com/kardianos/govendor
 
 build:
-	go get
+	govendor sync
 	go build
 
 test: lint
