@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "YEhE8VaumFZeBqyaadykEyAUgaA=",
+			"path": "rsc.io/sqlite",
+			"revision": "c7a7bd4dbacb51305009da98e85a5f754358965a",
+			"revisionTime": "2015-10-27T00:26:47Z"
+		}
+	],
+	"rootPath": "github.com/stchris/books"
+}
