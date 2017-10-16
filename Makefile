@@ -1,22 +1,21 @@
 
-all: deps fmt build test vet golint
+all: deps fmt test build
 
 deps:
 	go get github.com/golang/lint/golint
+	go get honnef.co/go/tools/cmd/megacheck
 	go get -u github.com/kardianos/govendor
+	govendor sync
 
 build:
-	govendor sync
 	go build
 
-test:
+test: lint
 	go test
 
-vet:
-	go vet
-
-golint:
+lint:
 	golint
+	megacheck
 
 fmt:
 	go fmt
